@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<defs>
+ <linearGradient id="base" x1="0" y1="0" x2="0.8" y2="1"><stop stop-color="#354468"/><stop offset="1" stop-color="#171e35"/></linearGradient>
+ <linearGradient id="top" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b4fff0"/><stop offset="1" stop-color="#38d9d0"/></linearGradient>
+ <linearGradient id="left" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#27c8c8"/><stop offset="1" stop-color="#1684ad"/></linearGradient>
+ <linearGradient id="right" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5a9cfa"/><stop offset="1" stop-color="#7460e6"/></linearGradient>
+</defs>
+<rect x="10" y="15" width="108" height="106" rx="26" fill="#101629"/>
+<rect x="10" y="8" width="108" height="108" rx="26" fill="url(#base)"/>
+<path d="M36 9h56a25 25 0 0 1 25 25" fill="none" stroke="#839ac1" stroke-opacity=".35" stroke-width="2"/>
+<g fill="none" stroke="#6b83a9" stroke-width="4" stroke-linecap="round">
+ <path d="M33 48h-9m9 16h-9m9 16h-9m71-32h9m-9 16h9m-9 16h9M49 32V23m15 9V23m15 9V23M49 96v8m15-8v8m15-8v8"/>
+</g>
+<rect x="31" y="31" width="66" height="66" rx="15" fill="#101b30" stroke="#536787" stroke-width="2"/>
+<path d="m64 39 23 13-23 14-23-14Z" fill="url(#top)"/>
+<path d="m41 56 21 13v25L41 81Z" fill="url(#left)"/>
+<path d="m66 69 21-13v25L66 94Z" fill="url(#right)"/>
+<path d="m44 52 20-11 20 11" fill="none" stroke="#e0fff6" stroke-width="2" stroke-linejoin="round" opacity=".8"/>
+<path d="m95 19 2.5 6.5L104 28l-6.5 2.5L95 37l-2.5-6.5L86 28l6.5-2.5Z" fill="#d7fff3"/>
+<circle cx="100" cy="98" r="5" fill="#101b30"/><circle cx="100" cy="97" r="3" fill="#67f1c4"/>
+</svg>

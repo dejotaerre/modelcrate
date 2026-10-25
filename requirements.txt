@@ -1,0 +1,2 @@
+requests>=2.31,<3
+# PyGObject, GTK4 y libadwaita se instalan mediante paquetes de la distribución.
