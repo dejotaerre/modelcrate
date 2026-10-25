@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.1.0 — experimental, unreleased
+## Unreleased
+
+- Automatic Spanish UI for Spanish system locales, English fallback for all others.
+- Translated dialogs, explorer, hardware advice, error messages and installer.
+- English light/dark screenshots and an explicit language override for previewing.
+- Locale-selection and translation-placeholder tests; CI runs in both languages.
+
+## 0.1.0 — experimental
 
 - Native GTK4/libadwaita interface with light/dark styling.
 - Hugging Face discovery, application filters, model details and pagination.

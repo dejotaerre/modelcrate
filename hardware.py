@@ -1,4 +1,5 @@
 """Detección Linux de solo lectura y estimación orientativa de memoria."""
+from i18n import tr
 from pathlib import Path
 import csv
 import re
@@ -81,11 +82,11 @@ def recommend(files, hardware, context, preference=1):
     gpu_budget=max(0,gpu-overhead)
     candidates=[(i,f,quantization(f['file'])) for i,f in enumerate(files) if f.get('size',0)>0 and quantization(f['file']) is not None]
     if not candidates or not ram:
-        return None,'No pudimos estimar una variante: faltan datos de memoria o cuantización.'
+        return None,tr('No pudimos estimar una variante: faltan datos de memoria o cuantización.')
     # No se suman RAM y VRAM ni las memorias de varias GPU.
     fast=[x for x in candidates if x[1]['size']<=gpu_budget and x[1]['size']<=ram_budget]
     fits=fast if fast and preference!=2 else [x for x in candidates if x[1]['size']<=ram_budget]
-    if not fits:return None,'Ninguna variante entra en el presupuesto estimado de memoria. Puedes elegir manualmente, pero podría no cargar.'
+    if not fits:return None,tr('Ninguna variante entra en el presupuesto estimado de memoria. Puedes elegir manualmente, pero podría no cargar.')
     if preference==0:
         decent=[x for x in fits if x[2]>=4]
         chosen=min(decent or fits,key=lambda x:x[1]['size'])
@@ -94,17 +95,17 @@ def recommend(files, hardware, context, preference=1):
     else:
         chosen=min(fits,key=lambda x:(abs(x[2]-4), 'nomtp' in x[1]['file'].lower(), -x[1]['size']))
     i,f,bits=chosen
-    route='Cabe en el presupuesto estimado de VRAM y RAM.' if f['size']<=gpu_budget else 'Estimación basada en RAM: puede usar CPU o carga parcial en GPU y ser más lenta.'
-    warning=' La cuantización es baja; puede perder calidad.' if bits<4 else ''
-    return i,f'{route} Reservamos {overhead/GIB:.1f} GiB orientativos para ejecución y contexto ({context:,} tokens).{warning} No es una garantía: la arquitectura y la caché real pueden necesitar más memoria.'
+    route=tr('Cabe en el presupuesto estimado de VRAM y RAM.') if f['size']<=gpu_budget else tr('Estimación basada en RAM: puede usar CPU o carga parcial en GPU y ser más lenta.')
+    warning=tr(' La cuantización es baja; puede perder calidad.') if bits<4 else ''
+    return i,tr('{0} Reservamos {1:.1f} GiB orientativos para ejecución y contexto ({2:,} tokens).{3} No es una garantía: la arquitectura y la caché real pueden necesitar más memoria.').format(route, overhead / GIB, context, warning)
 
 
 def summary(h):
     ram=h.get('available')
-    lines=[f'RAM disponible: {ram/GIB:.1f} GiB' if ram else 'RAM disponible: sin confirmar']
+    lines=[tr('RAM disponible: {0:.1f} GiB').format(ram / GIB) if ram else tr('RAM disponible: sin confirmar')]
     for g in h.get('gpus',[]):
         free=g.get('free')
-        lines.append(g['name']+(f" · VRAM libre: {free/GIB:.1f} GiB" if free is not None else ' · memoria compartida o VRAM libre sin confirmar'))
-    if not h.get('gpus'):lines.append('Sin GPU detectada; estimación basada en RAM.')
-    lines.append('Detectar una GPU no garantiza que el programa que ejecuta el modelo pueda utilizarla. No sumamos memorias compartidas ni varias GPU.')
+        lines.append(g['name']+(tr(' · VRAM libre: {0:.1f} GiB').format(free / GIB) if free is not None else tr(' · memoria compartida o VRAM libre sin confirmar')))
+    if not h.get('gpus'):lines.append(tr('Sin GPU detectada; estimación basada en RAM.'))
+    lines.append(tr('Detectar una GPU no garantiza que el programa que ejecuta el modelo pueda utilizarla. No sumamos memorias compartidas ni varias GPU.'))
     return '\n'.join(lines)

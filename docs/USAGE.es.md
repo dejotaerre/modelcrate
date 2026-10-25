@@ -20,3 +20,9 @@ El gestor sigue el tema del escritorio, claro u oscuro. No cambia tu tema global
 - **Apenas se libera espacio:** otra referencia puede compartir los mismos pesos. No es una segunda descarga.
 
 Los respaldos y registros quedan por defecto en `~/.local/state/modelcrate`. No incluyen los pesos. El instalador solo añade el lanzador, el ícono y la entrada del menú; desinstalar ModelCrate no elimina tus modelos.
+
+## Idioma
+
+La aplicación usa español si el idioma del sistema es español e inglés en cualquier otro caso. Esto incluye botones, avisos, errores e instalador. Las descripciones publicadas por los autores en Hugging Face se mantienen en su idioma original.
+
+Puedes probar otro idioma sin cambiar el sistema con `MODELCRATE_LANGUAGE=en python3 app.py` o `MODELCRATE_LANGUAGE=es python3 app.py`. Cierra las instancias abiertas antes de cambiarlo. Las capturas del repositorio se generan en inglés por defecto.

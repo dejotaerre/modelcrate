@@ -2,13 +2,13 @@
 
 **Browse, download and organize local AI models.** A native GTK4/libadwaita desktop manager for Linux, powered by Ollama.
 
-**v0.1.0 — experimental.** Spanish interface. Tested on CachyOS/GNOME. Windows and macOS are not supported. NVIDIA detection has been checked on physical hardware; AMD/Intel recommendation cases are covered by simulated tests, not physical-device validation.
+**v0.1.0 — experimental.** Automatic Spanish/English interface. Tested on CachyOS/GNOME. Windows and macOS are not supported. NVIDIA detection has been checked on physical hardware; AMD/Intel recommendation cases are covered by simulated tests, not physical-device validation.
 
 [Guía en español](docs/USAGE.es.md) · [Development](CONTRIBUTING.md) · [Release notes](CHANGELOG.md)
 
 ## Screenshots
 
-Real application renders with demonstration data, not a user's private model inventory.
+Real application renders in English with demonstration data, not a user's private model inventory.
 
 ### Dark
 
@@ -66,6 +66,21 @@ Remove the launcher without deleting models, sources or settings:
 ```bash
 python3 install.py --uninstall
 ```
+
+## Language
+
+ModelCrate automatically uses **Spanish** for Spanish locales (`es`, `es_ES`, `es_UY`, etc.) and **English** for every other language. This covers the main window, model explorer, dialogs, status/error messages and installer. Model names, API identifiers and authors' Hugging Face descriptions remain unchanged.
+
+Locale precedence is `LC_ALL`, then the first entry in `LANGUAGE`, then `LC_MESSAGES`, then `LANG`. Missing or C/POSIX locales fall back to English. Desktop launches normally inherit the desktop session's language.
+
+For a one-off override, without changing your system settings:
+
+```bash
+MODELCRATE_LANGUAGE=en python3 app.py
+MODELCRATE_LANGUAGE=es python3 app.py
+```
+
+Restart the application after changing language. Repository screenshots default to English in both themes; use `--language es` with the screenshot script for separate Spanish previews. See [translation maintenance](docs/I18N.md).
 
 ## Optional OpenCode integration
 

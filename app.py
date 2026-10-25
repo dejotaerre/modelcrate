@@ -1,5 +1,6 @@
 #!/usr/bin/python
 """Ventana nativa para Ollama y OpenCode."""
+from i18n import tr, decimal_text
 import re
 import sys
 import threading
@@ -22,9 +23,9 @@ def variant_labels(files):
         match = re.search(r'(?:^|[-_.])((?:IQ|Q)\d[A-Za-z0-9_]*|BF16|F16|F32|FP16|FP32)(?=$|[-.])', filename, re.I)
         quant = match.group(1).upper() if match else filename
         extra = ' · noMTP' if 'nomtp' in filename.lower() else ''
-        labels.append(f"{quant} · {size_text(f['size']).replace('.', ',')}{extra}")
+        labels.append(f"{quant} · {decimal_text(size_text(f['size']))}{extra}")
     # Se distinguen también archivos con igual cuantización y tamaño.
-    return [f'{label} · opción {i + 1}' if labels.count(label) > 1 else label
+    return [tr('{0} · opción {1}').format(label, i + 1) if labels.count(label) > 1 else label
             for i, label in enumerate(labels)]
 
 
@@ -63,11 +64,11 @@ class Window(Adw.ApplicationWindow):
         title = Adw.WindowTitle(title='ModelCrate')
         header.set_title_widget(title)
         header.pack_start(Gtk.Image.new_from_file(str(Path(__file__).parent / 'assets/modelcrate.svg')))
-        self.refresh = Gtk.Button(icon_name='view-refresh-symbolic', tooltip_text='Actualizar modelos instalados')
+        self.refresh = Gtk.Button(icon_name='view-refresh-symbolic', tooltip_text=tr('Actualizar modelos instalados'))
         self.refresh.connect('clicked', lambda _: self.reload())
         header.pack_end(self.refresh)
         root.append(header)
-        self.status = Gtk.Label(label='Conectando con Ollama…', xalign=0, wrap=True)
+        self.status = Gtk.Label(label=tr('Conectando con Ollama…'), xalign=0, wrap=True)
         self.status.add_css_class('status-line')
         self.status.set_margin_start(24)
         self.status.set_margin_end(24)
@@ -81,7 +82,7 @@ class Window(Adw.ApplicationWindow):
         self.bar.set_margin_end(24)
         self.bar.set_margin_top(10)
         root.append(self.bar)
-        self.cancel = Gtk.Button(label='Cancelar descarga', halign=Gtk.Align.END, visible=False)
+        self.cancel = Gtk.Button(label=tr('Cancelar descarga'), halign=Gtk.Align.END, visible=False)
         self.cancel.set_margin_end(24)
         self.cancel.connect('clicked', self.cancel_download)
         root.append(self.cancel)
@@ -94,16 +95,16 @@ class Window(Adw.ApplicationWindow):
         self.sidebar.set_margin_top(16)
         self.sidebar.set_margin_bottom(16)
         self.sidebar.set_size_request(250, -1)
-        label = Gtk.Label(label='INSTALADOS', xalign=0)
+        label = Gtk.Label(label=tr('INSTALADOS'), xalign=0)
         label.add_css_class('heading')
         self.sidebar.append(label)
-        self.new_button = Gtk.Button(label='＋ Descargar otro modelo')
-        self.new_button.set_child(Adw.ButtonContent(icon_name='list-add-symbolic', label='Descargar otro modelo'))
+        self.new_button = Gtk.Button(label=tr('＋ Descargar otro modelo'))
+        self.new_button.set_child(Adw.ButtonContent(icon_name='list-add-symbolic', label=tr('Descargar otro modelo')))
         self.new_button.add_css_class('new-model')
         self.new_button.connect('clicked', lambda _: self.new_model())
         self.sidebar.append(self.new_button)
         explore = Gtk.Button()
-        explore.set_child(Adw.ButtonContent(icon_name='system-search-symbolic', label='Explorar modelos'))
+        explore.set_child(Adw.ButtonContent(icon_name='system-search-symbolic', label=tr('Explorar modelos')))
         explore.connect('clicked', lambda _: Explorer(self).present())
         self.sidebar.append(explore)
         self.listbox = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
@@ -118,7 +119,7 @@ class Window(Adw.ApplicationWindow):
             getattr(self.form, 'set_margin_' + side)(24)
         scroll2.set_child(self.form)
         content.set_end_child(scroll2)
-        self.heading = Gtk.Label(label='Añadir un modelo', xalign=0)
+        self.heading = Gtk.Label(label=tr('Añadir un modelo'), xalign=0)
         self.heading.add_css_class('title-1')
         hero = Gtk.Box(spacing=16)
         hero.add_css_class('hero')
@@ -129,23 +130,23 @@ class Window(Adw.ApplicationWindow):
         self.heading.set_wrap(True)
         hero.append(self.heading)
         self.form.append(hero)
-        self.download_group = Adw.PreferencesGroup(title='Desde Hugging Face', description='Pega el enlace del modelo en Hugging Face. Puedes usar modelos públicos en un único archivo GGUF.')
-        self.url = Adw.EntryRow(title='Escribe o pega la URL del modelo')
+        self.download_group = Adw.PreferencesGroup(title=tr('Desde Hugging Face'), description=tr('Pega el enlace del modelo en Hugging Face. Puedes usar modelos públicos en un único archivo GGUF.'))
+        self.url = Adw.EntryRow(title=tr('Escribe o pega la URL del modelo'))
         self.url.connect('changed', self.invalidate_source)
         self.url.add_prefix(self.colored_icon('insert-link-symbolic', 'tone-blue'))
         self.download_group.add(self.url)
         self.lookup_spinner = Gtk.Spinner(visible=False, valign=Gtk.Align.CENTER,
-                                          tooltip_text='Buscando variantes…')
+                                          tooltip_text=tr('Buscando variantes…'))
         self.url.add_suffix(self.lookup_spinner)
         self.url_focus = Gtk.EventControllerFocus.new()
         self.url_focus.connect('leave', self.url_focus_left)
         self.url.add_controller(self.url_focus)
         self.url.connect('entry-activated', self.inspect)
-        self.variant = Adw.ComboRow(title='Variante y tamaño', model=Gtk.StringList.new(['Escribe una URL para ver las variantes']))
+        self.variant = Adw.ComboRow(title=tr('Variante y tamaño'), model=Gtk.StringList.new([tr('Escribe una URL para ver las variantes')]))
         self.variant.connect('notify::selected', self.variant_changed)
         self.variant.add_prefix(self.colored_icon('package-x-generic-symbolic', 'tone-purple'))
         self.download_group.add(self.variant)
-        self.preference = Adw.ComboRow(title='Prioridad', model=Gtk.StringList.new(['Más velocidad', 'Equilibrio', 'Más calidad']))
+        self.preference = Adw.ComboRow(title=tr('Prioridad'), model=Gtk.StringList.new([tr('Más velocidad'), tr('Equilibrio'), tr('Más calidad')]))
         self.preference.set_selected(1)
         self.preference.connect('notify::selected', lambda *_: self.update_recommendation())
         self.download_group.add(self.preference)
@@ -155,10 +156,10 @@ class Window(Adw.ApplicationWindow):
         self.advice = Gtk.Label(xalign=0, wrap=True, selectable=True)
         self.download_group.add(self.advice)
         actions = Gtk.Box(spacing=8)
-        self.apply_advice = Gtk.Button(label='Usar recomendación', sensitive=False)
+        self.apply_advice = Gtk.Button(label=tr('Usar recomendación'), sensitive=False)
         self.apply_advice.connect('clicked', lambda *_: self.apply_recommendation())
         actions.append(self.apply_advice)
-        refresh_hardware = Gtk.Button(label='Actualizar memoria')
+        refresh_hardware = Gtk.Button(label=tr('Actualizar memoria'))
         refresh_hardware.connect('clicked', self.refresh_hardware)
         actions.append(refresh_hardware)
         self.download_group.add(actions)
@@ -166,57 +167,57 @@ class Window(Adw.ApplicationWindow):
         self.details = Gtk.Label(xalign=0, wrap=True, selectable=True)
         self.details.add_css_class('dim-label')
         self.form.append(self.details)
-        group = Adw.PreferencesGroup(title='Configuración del modelo', description='Estos ajustes se guardan en Ollama y, si está habilitada la integración, en OpenCode. Más contexto necesita más memoria.')
-        self.name = Adw.EntryRow(title='Nombre local')
+        group = Adw.PreferencesGroup(title=tr('Configuración del modelo'), description=tr('Estos ajustes se guardan en Ollama y, si está habilitada la integración, en OpenCode. Más contexto necesita más memoria.'))
+        self.name = Adw.EntryRow(title=tr('Nombre local'))
         self.name.add_prefix(self.colored_icon('edit-symbolic', 'tone-teal'))
         group.add(self.name)
         self.spins = {}
         for key, label, low, high, step, value, digits in [
-            ('num_ctx', 'Contexto (tokens)', 512, 262144, 1024, 8192, 0),
-            ('num_predict', 'Máximo de salida (tokens)', 1, 131072, 512, 2048, 0),
-            ('temperature', 'Temperatura', 0, 2, .1, .6, 2)]:
+            ('num_ctx', tr('Contexto (tokens)'), 512, 262144, 1024, 8192, 0),
+            ('num_predict', tr('Máximo de salida (tokens)'), 1, 131072, 512, 2048, 0),
+            ('temperature', tr('Temperatura'), 0, 2, .1, .6, 2)]:
             group.add(self.spin_row(key, label, low, high, step, value, digits))
-        self.make_default = Adw.SwitchRow(title='Usar por defecto en OpenCode')
+        self.make_default = Adw.SwitchRow(title=tr('Usar por defecto en OpenCode'))
         self.make_default.add_prefix(self.colored_icon('starred-symbolic', 'tone-orange'))
         self.make_default.set_visible(self.api.config.enabled)
         group.add(self.make_default)
         self.form.append(group)
-        advanced = Adw.PreferencesGroup(title='Opciones avanzadas')
+        advanced = Adw.PreferencesGroup(title=tr('Opciones avanzadas'))
         for args in [('top_p', 'Top-p', .01, 1, .05, .95, 2),
                      ('top_k', 'Top-k', 1, 1000, 1, 40, 0),
-                     ('repeat_penalty', 'Penalización de repetición', .1, 3, .05, 1.0, 2)]:
+                     ('repeat_penalty', tr('Penalización de repetición'), .1, 3, .05, 1.0, 2)]:
             advanced.add(self.spin_row(*args))
-        expander = Gtk.Expander(label='Muestreo e instrucciones propias')
+        expander = Gtk.Expander(label=tr('Muestreo e instrucciones propias'))
         advanced_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         advanced_box.append(advanced)
-        advanced_box.append(Gtk.Label(label='Mensaje de sistema opcional de Ollama', xalign=0))
+        advanced_box.append(Gtk.Label(label=tr('Mensaje de sistema opcional de Ollama'), xalign=0))
         self.system = Gtk.TextView(wrap_mode=Gtk.WrapMode.WORD_CHAR, height_request=100)
         self.system.set_top_margin(8)
         self.system.set_left_margin(8)
         sys_scroll = Gtk.ScrolledWindow(min_content_height=100)
         sys_scroll.set_child(self.system)
         advanced_box.append(sys_scroll)
-        advanced_box.append(Gtk.Label(label='OpenCode envía sus propias instrucciones; este mensaje no sustituye AGENTS.md ni CODEX.md.', wrap=True, xalign=0))
+        advanced_box.append(Gtk.Label(label=tr('OpenCode envía sus propias instrucciones; este mensaje no sustituye AGENTS.md ni CODEX.md.'), wrap=True, xalign=0))
         expander.set_child(advanced_box)
         self.form.append(expander)
         buttons = Gtk.Box(spacing=10)
-        self.save = Gtk.Button(label='Descargar y configurar')
-        self.save.set_child(Adw.ButtonContent(icon_name='folder-download-symbolic', label='Descargar y configurar'))
+        self.save = Gtk.Button(label=tr('Descargar y configurar'))
+        self.save.set_child(Adw.ButtonContent(icon_name='folder-download-symbolic', label=tr('Descargar y configurar')))
         self.save.add_css_class('suggested-action')
         self.save.connect('clicked', self.save_clicked)
         buttons.append(self.save)
-        self.test = Gtk.Button(label='Probar herramientas', visible=False)
-        self.test.set_child(Adw.ButtonContent(icon_name='applications-engineering-symbolic', label='Probar herramientas'))
+        self.test = Gtk.Button(label=tr('Probar herramientas'), visible=False)
+        self.test.set_child(Adw.ButtonContent(icon_name='applications-engineering-symbolic', label=tr('Probar herramientas')))
         self.test.add_css_class('tools-button')
         self.test.connect('clicked', self.test_clicked)
         buttons.append(self.test)
-        self.remove = Gtk.Button(label='Desinstalar', visible=False)
-        self.remove.set_child(Adw.ButtonContent(icon_name='user-trash-symbolic', label='Desinstalar'))
+        self.remove = Gtk.Button(label=tr('Desinstalar'), visible=False)
+        self.remove.set_child(Adw.ButtonContent(icon_name='user-trash-symbolic', label=tr('Desinstalar')))
         self.remove.add_css_class('destructive-action')
         self.remove.connect('clicked', self.remove_clicked)
         buttons.append(self.remove)
         self.form.append(buttons)
-        self.note = Gtk.Label(label='Si le das otro nombre, también verás el modelo original en la lista. Ambos comparten los mismos archivos, sin duplicar la descarga.', xalign=0, wrap=True)
+        self.note = Gtk.Label(label=tr('Si le das otro nombre, también verás el modelo original en la lista. Ambos comparten los mismos archivos, sin duplicar la descarga.'), xalign=0, wrap=True)
         self.note.add_css_class('dim-label')
         self.form.append(self.note)
         self.set_content(root)
@@ -254,7 +255,7 @@ class Window(Adw.ApplicationWindow):
 
     def closing(self, *_):
         if self.busy:
-            self.status.set_text('Todavía hay una tarea en marcha. Espera a que termine o cancela la descarga antes de cerrar.')
+            self.status.set_text(tr('Todavía hay una tarea en marcha. Espera a que termine o cancela la descarga antes de cerrar.'))
         return self.busy
 
     def cancel_download(self, *_):
@@ -262,7 +263,7 @@ class Window(Adw.ApplicationWindow):
             return
         self.api.stop()
         self.cancel.set_sensitive(False)
-        self.status.set_text('Cancelando la transferencia… Los bloques parciales los gestiona Ollama.')
+        self.status.set_text(tr('Cancelando la transferencia… Los bloques parciales los gestiona Ollama.'))
 
     def progress(self, fraction, message):
         GLib.idle_add(self.update_progress, fraction, message)
@@ -272,10 +273,10 @@ class Window(Adw.ApplicationWindow):
         self.status.set_text(message)
         if fraction is None:
             self.bar.pulse()
-            self.bar.set_text('Procesando')
+            self.bar.set_text(tr('Procesando'))
         else:
             self.bar.set_fraction(max(0, min(1, fraction)))
-            self.bar.set_text(f'{fraction:.0%} del archivo actual')
+            self.bar.set_text(tr('{0:.0%} del archivo actual').format(fraction))
 
     def run(self, work, done=None, cancellable=False):
         if self.busy:
@@ -290,7 +291,7 @@ class Window(Adw.ApplicationWindow):
         self.cancel.set_visible(cancellable)
         self.bar.set_fraction(0)
         self.bar.set_visible(cancellable)
-        self.bar.set_text('Trabajando…')
+        self.bar.set_text(tr('Trabajando…'))
         def worker():
             try:
                 result, error = work(), None
@@ -311,22 +312,22 @@ class Window(Adw.ApplicationWindow):
         self.bar.set_visible(False)
         if error:
             cancelled = isinstance(error, Cancelled) or self.api.cancel.is_set()
-            self.status.set_text('Cancelaste la descarga. Si la vuelves a iniciar, Ollama puede aprovechar lo que ya descargó.' if cancelled else str(error))
-            self.bar.set_text('Cancelado' if cancelled else 'No completado')
+            self.status.set_text(tr('Cancelaste la descarga. Si la vuelves a iniciar, Ollama puede aprovechar lo que ya descargó.') if cancelled else str(error))
+            self.bar.set_text(tr('Cancelado') if cancelled else tr('No completado'))
             if not cancelled:
                 self.api.audit.record('ERROR', str(error))
         else:
             self.bar.set_fraction(1)
-            self.bar.set_text('Completado')
+            self.bar.set_text(tr('Completado'))
             if done:
                 try:
                     done(result)
                 except Exception as e:
                     self.status.set_text(str(e))
-                    self.bar.set_text('No completado')
+                    self.bar.set_text(tr('No completado'))
 
     def reload(self):
-        self.status.set_text('Buscando tus modelos instalados…')
+        self.status.set_text(tr('Buscando tus modelos instalados…'))
         self.run(self.api.models, self.populate)
 
     def populate(self, models):
@@ -348,18 +349,18 @@ class Window(Adw.ApplicationWindow):
             row.connect('activated', lambda _, n=m['name']: self.load_model(n))
             self.listbox.append(row)
         self.mark_selected()
-        self.status.set_text(f'{len(models)} modelos en Ollama · Guardamos una copia de los ajustes antes de cambiarlos')
+        self.status.set_text(tr('{0} modelos en Ollama · Guardamos una copia de los ajustes antes de cambiarlos').format(len(models)))
 
     def new_model(self):
         self.selected = None
         self.mark_selected()
-        self.heading.set_text('Añadir un modelo')
+        self.heading.set_text(tr('Añadir un modelo'))
         self.download_group.set_visible(True)
         self.name.set_text('')
         self.name.set_editable(True)
         self.details.set_text('')
         self.save.set_sensitive(True)
-        self.save.get_child().set_label('Descargar y configurar')
+        self.save.get_child().set_label(tr('Descargar y configurar'))
         self.save.get_child().set_icon_name('folder-download-symbolic')
         self.test.set_visible(False)
         self.remove.set_visible(False)
@@ -377,7 +378,7 @@ class Window(Adw.ApplicationWindow):
             self.advice.set_text('')
             self.apply_advice.set_sensitive(False)
         if hasattr(self, 'variant'):
-            self.variant.set_model(Gtk.StringList.new(['Se buscarán al salir del campo de URL']))
+            self.variant.set_model(Gtk.StringList.new([tr('Se buscarán al salir del campo de URL')]))
 
     def url_focus_left(self, *_):
         GLib.idle_add(self.lookup_after_focus)
@@ -392,7 +393,7 @@ class Window(Adw.ApplicationWindow):
             return
         self.lookup_spinner.set_visible(True)
         self.lookup_spinner.start()
-        self.status.set_text('Buscando las variantes del modelo en Hugging Face…')
+        self.status.set_text(tr('Buscando las variantes del modelo en Hugging Face…'))
         url = self.url.get_text()
         def done(result):
             (repo, self.files, skipped), self.hardware = result
@@ -401,7 +402,7 @@ class Window(Adw.ApplicationWindow):
             self.variant.set_selected(self.recommended_index if self.recommended_index is not None else Gtk.INVALID_LIST_POSITION)
             self.variant_changed()
             self.name.set_text(re.sub(r'[^a-z0-9._-]', '-', repo.split('/')[-1].lower().removesuffix('-gguf')))
-            self.status.set_text(f'{len(self.files)} variantes disponibles. Elige la que quieras y pulsa Descargar y configurar para empezar.')
+            self.status.set_text(tr('{0} variantes disponibles. Elige la que quieras y pulsa Descargar y configurar para empezar.').format(len(self.files)))
         self.run(lambda: (variants(url), detect()), done)
 
     def update_recommendation(self):
@@ -410,8 +411,8 @@ class Window(Adw.ApplicationWindow):
         context = int(self.spins['num_ctx'].get_value())
         self.recommended_index, reason = recommend(self.files, self.hardware, context, self.preference.get_selected())
         self.hardware_info.set_text(summary(self.hardware))
-        label = variant_labels(self.files)[self.recommended_index] if self.recommended_index is not None else 'Sin recomendación'
-        self.advice.set_text(f'Recomendación orientativa: {label}\n{reason}\nPuedes cambiar la variante. Si ajustas el contexto o la prioridad, pulsa Usar recomendación para aplicarla.')
+        label = variant_labels(self.files)[self.recommended_index] if self.recommended_index is not None else tr('Sin recomendación')
+        self.advice.set_text(tr('Recomendación orientativa: {0}\n{1}\nPuedes cambiar la variante. Si ajustas el contexto o la prioridad, pulsa Usar recomendación para aplicarla.').format(label, reason))
         self.apply_advice.set_sensitive(self.recommended_index is not None)
 
     def apply_recommendation(self):
@@ -423,7 +424,7 @@ class Window(Adw.ApplicationWindow):
             self.hardware = hardware
             self.hardware_info.set_text(summary(hardware))
             self.update_recommendation()
-            self.status.set_text('Memoria actualizada. Puedes aplicar la nueva recomendación si quieres.')
+            self.status.set_text(tr('Memoria actualizada. Puedes aplicar la nueva recomendación si quieres.'))
         self.run(detect, done)
 
     def variant_changed(self, *_):
@@ -435,17 +436,17 @@ class Window(Adw.ApplicationWindow):
                 f = self.files[i]
                 self.source = f['source']
                 self.variant.set_tooltip_text(f['file'])
-                self.details.set_text(f"Archivo seleccionado: {f['file']}\nDescarga: {size_text(f['size']).replace('.', ',')}. Recuerda que el contexto también necesita memoria.")
+                self.details.set_text(tr('Archivo seleccionado: {0}\nDescarga: {1}. Recuerda que el contexto también necesita memoria.').format(f['file'], decimal_text(size_text(f['size']))))
 
     def load_model(self, name):
         def done(info):
             self.selected = self.source = name
             self.mark_selected()
-            self.heading.set_text('Configurar modelo instalado')
+            self.heading.set_text(tr('Configurar modelo instalado'))
             self.download_group.set_visible(False)
             self.name.set_text(name)
             self.name.set_editable(False)
-            self.save.get_child().set_label('Guardar ajustes')
+            self.save.get_child().set_label(tr('Guardar ajustes'))
             self.save.get_child().set_icon_name('document-save-symbolic')
             cloud = bool(info.get('remote_model')) or name.endswith(':cloud')
             self.save.set_sensitive(not cloud)
@@ -459,15 +460,15 @@ class Window(Adw.ApplicationWindow):
             self.system.get_buffer().set_text(info.get('system', ''))
             current = self.api.config.model_id(cfg)
             self.make_default.set_active(current in (f'ollama/{name}', f'ollama/{name.removesuffix(":latest")}'))
-            caps = ', '.join(info.get('capabilities', [])) or 'Sin capacidades declaradas'
-            max_ctx = next((v for k, v in info.get('model_info', {}).items() if k.endswith('.context_length')), 'No declarado')
-            self.details.set_text(f'Según Ollama, este modelo admite: {caps}\nContexto máximo que indica el modelo: {max_ctx}\nSi falta algún ajuste, te mostramos un valor inicial. Nada cambia hasta que pulses Guardar.')
-            self.status.set_text('Este modelo funciona en la nube. Puedes quitarlo de la lista, pero no ajustar archivos locales.' if cloud else 'Ya puedes cambiar sus ajustes. Al guardar, no tendrás que descargar el modelo otra vez.')
+            caps = ', '.join(info.get('capabilities', [])) or tr('Sin capacidades declaradas')
+            max_ctx = next((v for k, v in info.get('model_info', {}).items() if k.endswith('.context_length')), tr('No declarado'))
+            self.details.set_text(tr('Según Ollama, este modelo admite: {0}\nContexto máximo que indica el modelo: {1}\nSi falta algún ajuste, te mostramos un valor inicial. Nada cambia hasta que pulses Guardar.').format(caps, max_ctx))
+            self.status.set_text(tr('Este modelo funciona en la nube. Puedes quitarlo de la lista, pero no ajustar archivos locales.') if cloud else tr('Ya puedes cambiar sus ajustes. Al guardar, no tendrás que descargar el modelo otra vez.'))
         self.run(lambda: self.api.show(name), done)
 
     def feedback(self, title, message):
         dialog = Adw.MessageDialog(transient_for=self, heading=title, body=message)
-        dialog.add_response('ok', 'Entendido')
+        dialog.add_response('ok', tr('Entendido'))
         dialog.set_default_response('ok')
         dialog.set_close_response('ok')
         dialog.present()
@@ -476,32 +477,32 @@ class Window(Adw.ApplicationWindow):
         name = self.name.get_text().strip()
         if not self.source:
             if self.files:
-                self.feedback('Elige una variante', 'No hay una variante seleccionada. Revisa los archivos disponibles y elige uno antes de descargar.')
+                self.feedback(tr('Elige una variante'), tr('No hay una variante seleccionada. Revisa los archivos disponibles y elige uno antes de descargar.'))
             elif self.url.get_text().strip():
                 self.inspect()
             else:
-                self.feedback('Falta la URL del modelo', 'Escribe o pega el enlace de Hugging Face para buscar los archivos disponibles.')
+                self.feedback(tr('Falta la URL del modelo'), tr('Escribe o pega el enlace de Hugging Face para buscar los archivos disponibles.'))
                 self.url.grab_focus()
             return
         if not self.selected and not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9._-]*(?::[a-zA-Z0-9._-]+)?', name):
-            self.status.set_text('Usa un nombre local con letras, números, guiones o puntos, y una etiqueta opcional :nombre.')
+            self.status.set_text(tr('Usa un nombre local con letras, números, guiones o puntos, y una etiqueta opcional :nombre.'))
             return
         params = {k: (int(w.get_value()) if k in ('num_ctx', 'num_predict', 'top_k') else w.get_value()) for k, w in self.spins.items()}
         try:
             validate_parameters(params)
             self.api.config.read()
             if not self.selected and canonical(name) in [canonical(n) for n in self.names]:
-                raise ValueError('Ese nombre ya existe. Selecciónalo en Instalados para editarlo.')
+                raise ValueError(tr('Ese nombre ya existe. Selecciónalo en Instalados para editarlo.'))
         except Exception as e:
             self.status.set_text(str(e))
             return
         buf = self.system.get_buffer()
         system = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), True)
         source, installed, default = self.source, self.selected, self.make_default.get_active()
-        self.status.set_text(f'Iniciando descarga de {name}…' if not installed else f'Guardando configuración de {name}…')
+        self.status.set_text(tr('Iniciando descarga de {0}…').format(name) if not installed else tr('Guardando configuración de {0}…').format(name))
         def work():
             if not installed:
-                self.api.audit.record('INICIO_DESCARGA', f'Origen: {source}; nombre deseado: {name}')
+                self.api.audit.record('INICIO_DESCARGA', tr('Origen: {0}; nombre deseado: {1}').format(source, name))
                 self.api.stream('pull', {'model': source}, self.progress)
             if self.api.cancel.is_set():
                 raise Cancelled()
@@ -509,21 +510,21 @@ class Window(Adw.ApplicationWindow):
             if self.api.cancel.is_set():
                 raise Cancelled()
             GLib.idle_add(self.cancel.set_visible, False)
-            self.progress(None, 'Guardando tus ajustes…')
+            self.progress(None, tr('Guardando tus ajustes…'))
             self.api.configure(source, name, params, system, default, self.progress)
             return self.api.models()
         def done(models):
             self.populate(models)
-            target = 'Ollama y OpenCode' if self.api.config.enabled else 'Ollama'
-            self.status.set_text(f'{name} ya está listo en {target}.')
-            self.feedback('Modelo listo', f'{name} ya está listo en {target}.')
+            target = tr('Ollama y OpenCode') if self.api.config.enabled else 'Ollama'
+            self.status.set_text(tr('{0} ya está listo en {1}.').format(name, target))
+            self.feedback(tr('Modelo listo'), tr('{0} ya está listo en {1}.').format(name, target))
         self.run(work, done, cancellable=not bool(installed))
 
     def test_clicked(self, *_):
-        dialog = Adw.MessageDialog(transient_for=self, heading='Probar llamadas a herramientas',
-            body='Vamos a cargar el modelo y hacer dos consultas a Ollama. La prueba solo intercambia un código aleatorio: no ejecuta comandos ni accede a tu red.')
-        dialog.add_response('cancel', 'Cancelar')
-        dialog.add_response('test', 'Probar')
+        dialog = Adw.MessageDialog(transient_for=self, heading=tr('Probar llamadas a herramientas'),
+            body=tr('Vamos a cargar el modelo y hacer dos consultas a Ollama. La prueba solo intercambia un código aleatorio: no ejecuta comandos ni accede a tu red.'))
+        dialog.add_response('cancel', tr('Cancelar'))
+        dialog.add_response('test', tr('Probar'))
         dialog.set_response_appearance('test', Adw.ResponseAppearance.SUGGESTED)
         dialog.connect('response', lambda _, response: self.run(lambda: self.api.test_tools(self.selected), self.status.set_text) if response == 'test' else None)
         dialog.present()
@@ -539,19 +540,19 @@ class Window(Adw.ApplicationWindow):
         affected = current in (f'ollama/{name}', f'ollama/{name.removesuffix(":latest")}')
         choices = [f'{p}/{m}' for p, v in cfg.get('providers', {}).items() for m in v.get('models', {}) if not (p == 'ollama' and canonical(m) == canonical(name))]
         if affected and not choices:
-            self.status.set_text('Añade otro modelo a OpenCode antes de quitar el que usas por defecto.')
+            self.status.set_text(tr('Añade otro modelo a OpenCode antes de quitar el que usas por defecto.'))
             return
-        dialog = Adw.MessageDialog(transient_for=self, heading='¿Desinstalar este modelo?',
-            body=f'{name}\n\nVas a quitar este modelo de Ollama.' + (' También se retirará del catálogo de OpenCode.' if self.api.config.enabled else ' La configuración de otras aplicaciones no se actualizará.') + ' Ollama conserva los archivos que compartan otros modelos. Guardamos una copia de los ajustes, pero no de los archivos del modelo. Tus conversaciones se conservan.')
+        dialog = Adw.MessageDialog(transient_for=self, heading=tr('¿Desinstalar este modelo?'),
+            body=tr('{0}\n\nVas a quitar este modelo de Ollama.').format(name) + (tr(' También se retirará del catálogo de OpenCode.') if self.api.config.enabled else tr(' La configuración de otras aplicaciones no se actualizará.')) + tr(' Ollama conserva los archivos que compartan otros modelos. Guardamos una copia de los ajustes, pero no de los archivos del modelo. Tus conversaciones se conservan.'))
         picker = None
         if affected:
             box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-            box.append(Gtk.Label(label='¿Qué modelo quieres usar por defecto en OpenCode?'))
+            box.append(Gtk.Label(label=tr('¿Qué modelo quieres usar por defecto en OpenCode?')))
             picker = Gtk.DropDown.new_from_strings(choices)
             box.append(picker)
             dialog.set_extra_child(box)
-        dialog.add_response('cancel', 'Cancelar')
-        dialog.add_response('delete', 'Desinstalar')
+        dialog.add_response('cancel', tr('Cancelar'))
+        dialog.add_response('delete', tr('Desinstalar'))
         dialog.set_response_appearance('delete', Adw.ResponseAppearance.DESTRUCTIVE)
         dialog.set_default_response('cancel')
         dialog.set_close_response('cancel')
@@ -565,7 +566,7 @@ class Window(Adw.ApplicationWindow):
             def done(models):
                 self.populate(models)
                 self.new_model()
-                self.status.set_text(f'{name} desinstalado de Ollama.' + (' También se retiró de OpenCode.' if self.api.config.enabled else ''))
+                self.status.set_text(tr('{0} desinstalado de Ollama.').format(name) + (tr(' También se retiró de OpenCode.') if self.api.config.enabled else ''))
             self.run(work, done)
         dialog.connect('response', response)
         dialog.present()

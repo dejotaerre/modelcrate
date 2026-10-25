@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Instala el lanzador del usuario sin sudo ni cambios en paquetes."""
+from i18n import tr
 import argparse
 import os
 from pathlib import Path
@@ -22,7 +23,7 @@ def paths():
 
 def install(uninstall=False):
     if sys.platform != 'linux':
-        raise RuntimeError('Esta versión se instala en Linux; Windows y macOS no están soportados.')
+        raise RuntimeError(tr('Esta versión se instala en Linux; Windows y macOS no están soportados.'))
     audit = Audit()
     command, desktop, icon = paths()
     if uninstall:
@@ -30,15 +31,15 @@ def install(uninstall=False):
             if path.exists():
                 audit.backup(path, 'DESINSTALAR_APP')
                 path.unlink()
-        audit.record('DESINSTALAR_APP', 'Retirados lanzador, acceso del menú e ícono. Modelos, ajustes y fuentes conservados.')
-        print('ModelCrate desinstalado del menú. Tus modelos, ajustes y fuentes se conservan.')
+        audit.record('DESINSTALAR_APP', tr('Retirados lanzador, acceso del menú e ícono. Modelos, ajustes y fuentes conservados.'))
+        print(tr('ModelCrate desinstalado del menú. Tus modelos, ajustes y fuentes se conservan.'))
     else:
         import gi
         gi.require_version('Gtk', '4.0')
         gi.require_version('Adw', '1')
         from gi.repository import Gtk, Adw
         if (Adw.get_major_version(), Adw.get_minor_version()) < (1, 4):
-            raise RuntimeError('Necesitas libadwaita 1.4 o posterior.')
+            raise RuntimeError(tr('Necesitas libadwaita 1.4 o posterior.'))
         for path in (command, desktop, icon):
             audit.backup(path, 'INSTALAR_APP')
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -60,8 +61,8 @@ StartupNotify=true
 StartupWMClass={ID}
 ''')
         shutil.copy2(ROOT / 'assets/modelcrate.svg', icon)
-        audit.record('INSTALAR_APP', f'Fuentes: {ROOT}\nLanzador: {command}\nMenú: {desktop}\nÍcono: {icon}')
-        print('ModelCrate instalado. Ábrelo desde el menú de aplicaciones. Mantén el repositorio en esta ruta.')
+        audit.record('INSTALAR_APP', tr('Fuentes: {0}\nLanzador: {1}\nMenú: {2}\nÍcono: {3}').format(ROOT, command, desktop, icon))
+        print(tr('ModelCrate instalado. Ábrelo desde el menú de aplicaciones. Mantén el repositorio en esta ruta.'))
     for executable, args in [('update-desktop-database', [str(desktop.parent)]),
                              ('gtk-update-icon-cache', ['-f', '-t', str(icon.parents[2])])]:
         if shutil.which(executable):
@@ -69,11 +70,11 @@ StartupWMClass={ID}
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Instala ModelCrate para el usuario actual, sin sudo.')
-    parser.add_argument('--uninstall', action='store_true', help='Retira el lanzador; conserva fuentes, modelos y ajustes.')
+    parser = argparse.ArgumentParser(description=tr('Instala ModelCrate para el usuario actual, sin sudo.'))
+    parser.add_argument('--uninstall', action='store_true', help=tr('Retira el lanzador; conserva fuentes, modelos y ajustes.'))
     args = parser.parse_args()
     try:
         install(args.uninstall)
     except Exception as error:
-        print(f'No se pudo completar la instalación: {error}', file=sys.stderr)
+        print(tr('No se pudo completar la instalación: {0}').format(error), file=sys.stderr)
         sys.exit(1)

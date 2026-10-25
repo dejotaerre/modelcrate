@@ -1,4 +1,5 @@
 """Gestión local de modelos y configuración de OpenCode."""
+from i18n import tr
 import datetime as dt
 import json
 import os
@@ -32,12 +33,12 @@ def repository(url):
         url = 'https://' + url
     p = urlparse(url)
     if p.scheme != 'https' or p.hostname not in ('huggingface.co', 'hf.co'):
-        raise ValueError('Pega una URL HTTPS de huggingface.co o hf.co.')
+        raise ValueError(tr('Pega una URL HTTPS de huggingface.co o hf.co.'))
     parts = p.path.strip('/').split('/')
     if len(parts) < 2 or not all(re.fullmatch(r'[\w.-]+', x) for x in parts[:2]):
-        raise ValueError('La URL debe contener el autor y el repositorio.')
+        raise ValueError(tr('La URL debe contener el autor y el repositorio.'))
     if len(parts) > 2:
-        raise ValueError('Usa la URL principal del repositorio, sin /tree/ ni /blob/.')
+        raise ValueError(tr('Usa la URL principal del repositorio, sin /tree/ ni /blob/.'))
     return '/'.join(parts)
 
 
@@ -62,10 +63,10 @@ def variants(url):
                           'source': f'hf.co/{repo}:{name}'})
         endpoint = response.links.get('next', {}).get('url')
         if endpoint and urlparse(endpoint).hostname != 'huggingface.co':
-            raise ValueError('Hugging Face devolvió una paginación inesperada.')
+            raise ValueError(tr('Hugging Face devolvió una paginación inesperada.'))
     files.sort(key=lambda f: (f['size'], f['file']))
     if not files:
-        raise ValueError('No hay GGUF completos compatibles en la rama main. No se importan fragmentos ni proyectores solos.')
+        raise ValueError(tr('No hay GGUF completos compatibles en la rama main. No se importan fragmentos ni proyectores solos.'))
     return repo, files, skipped
 
 
@@ -88,13 +89,13 @@ def parse_parameters(text):
 
 def validate_parameters(p):
     if not 512 <= p['num_ctx'] <= 262144:
-        raise ValueError('El contexto debe estar entre 512 y 262144 tokens.')
+        raise ValueError(tr('El contexto debe estar entre 512 y 262144 tokens.'))
     if not 1 <= p['num_predict'] < p['num_ctx']:
-        raise ValueError('La salida máxima debe ser menor que el contexto.')
+        raise ValueError(tr('La salida máxima debe ser menor que el contexto.'))
     if not 0 <= p['temperature'] <= 2 or not 0 < p['top_p'] <= 1:
-        raise ValueError('Temperatura o top-p fuera de rango.')
+        raise ValueError(tr('Temperatura o top-p fuera de rango.'))
     if not 1 <= p['top_k'] <= 1000 or not 0.1 <= p['repeat_penalty'] <= 3:
-        raise ValueError('Top-k o penalización fuera de rango.')
+        raise ValueError(tr('Top-k o penalización fuera de rango.'))
 
 
 class Audit:
@@ -113,13 +114,13 @@ class Audit:
         folder = self.root / 'CAMBIOS'
         folder.mkdir(parents=True, exist_ok=True)
         path = folder / (dt.datetime.now().strftime('%Y%m%d_%H%M%S_%f') + f'_MODELOS_{label}.md')
-        path.write_text(f'# Gestor de modelos: {label}\n\n{text}\n')
+        path.write_text(tr('# Gestor de modelos: {0}\n\n{1}\n').format(label, text))
         return path
 
 
 class OpenCode:
     enabled = True
-    reason = 'OpenCode: integración activa (formato providers).'
+    reason = tr('OpenCode: integración activa (formato providers).')
 
     def __init__(self, path=None, audit=None):
         self.path = Path(path) if path is not None else config_home() / 'opencode/opencode.json'
@@ -130,25 +131,25 @@ class OpenCode:
         try:
             config = json.loads(data)
         except ValueError as e:
-            raise ValueError('opencode.json no es JSON estricto. No se modificó; revisa sus comentarios o sintaxis.') from e
+            raise ValueError(tr('opencode.json no es JSON estricto. No se modificó; revisa sus comentarios o sintaxis.')) from e
         other = self.path.with_suffix('.jsonc')
         if other.exists():
             text = other.read_text()
             if re.search(r'"(?:providers|provider|model|agents)"\s*:', text):
-                raise ValueError('Hay ajustes de modelos en opencode.jsonc; unifica esos ajustes antes de usar este gestor.')
+                raise ValueError(tr('Hay ajustes de modelos en opencode.jsonc; unifica esos ajustes antes de usar este gestor.'))
         if not isinstance(config, dict) or 'provider' in config or not isinstance(config.get('providers'), dict):
-            raise ValueError('Formato de OpenCode no compatible: esta versión admite providers, no provider ni configuraciones vacías.')
+            raise ValueError(tr('Formato de OpenCode no compatible: esta versión admite providers, no provider ni configuraciones vacías.'))
         if not all(isinstance(v, dict) and isinstance(v.get('models', {}), dict)
                    and isinstance(v.get('settings', {}), dict) for v in config['providers'].values()):
-            raise ValueError('La configuración de proveedores de OpenCode no tiene el formato esperado.')
+            raise ValueError(tr('La configuración de proveedores de OpenCode no tiene el formato esperado.'))
         if not isinstance(config.get('agents', {}), dict):
-            raise ValueError('El formato de agentes de OpenCode no es compatible.')
+            raise ValueError(tr('El formato de agentes de OpenCode no es compatible.'))
         return config, data
 
     def save(self, config, before):
         current = self.path.read_bytes() if self.path.exists() else b'{}'
         if current != before:
-            raise RuntimeError('OpenCode cambió durante la operación. Actualiza la lista y vuelve a registrar el modelo.')
+            raise RuntimeError(tr('OpenCode cambió durante la operación. Actualiza la lista y vuelve a registrar el modelo.'))
         backup = self.audit.backup(self.path, 'OPENCODE')
         self.path.parent.mkdir(parents=True, exist_ok=True)
         fd, temp = tempfile.mkstemp(dir=self.path.parent, prefix='.modelos-')
@@ -161,12 +162,12 @@ class OpenCode:
             if self.path.exists():
                 os.chmod(temp, self.path.stat().st_mode & 0o777)
             if (self.path.read_bytes() if self.path.exists() else b'{}') != before:
-                raise RuntimeError('La configuración cambió; no se sobrescribió.')
+                raise RuntimeError(tr('La configuración cambió; no se sobrescribió.'))
             os.replace(temp, self.path)
         finally:
             if os.path.exists(temp):
                 os.unlink(temp)
-        self.audit.record('OPENCODE', f'Configuración: {self.path}\n\nRespaldo: {backup}')
+        self.audit.record('OPENCODE', tr('Configuración: {0}\n\nRespaldo: {1}').format(self.path, backup))
 
     @staticmethod
     def model_id(config):
@@ -180,7 +181,7 @@ class OpenCode:
         provider = cfg.setdefault('providers', {}).setdefault('ollama', {'name': 'Ollama'})
         existing_url = provider.get('settings', {}).get('baseURL')
         if existing_url and existing_url.rstrip('/') != base.rstrip('/') + '/v1':
-            raise ValueError('El proveedor ollama de OpenCode apunta a otro servidor. No se modificó.')
+            raise ValueError(tr('El proveedor ollama de OpenCode apunta a otro servidor. No se modificó.'))
         provider.setdefault('settings', {})['baseURL'] = base.rstrip('/') + '/v1'
         provider.setdefault('package', '@opencode/ai/providers/openai-compatible')
         models = provider.setdefault('models', {})
@@ -203,16 +204,16 @@ class OpenCode:
         selected = self.model_id(cfg)
         affected = selected in ids or selected in {f'ollama/{canonical(name)}'}
         if affected and not replacement:
-            raise ValueError('Elige otro modelo predeterminado antes de desinstalar este.')
+            raise ValueError(tr('Elige otro modelo predeterminado antes de desinstalar este.'))
         if replacement in ids:
-            raise ValueError('El reemplazo no puede ser el modelo eliminado.')
+            raise ValueError(tr('El reemplazo no puede ser el modelo eliminado.'))
         for agent in cfg.get('agents', {}).values():
             if isinstance(agent, dict) and self.model_id(agent) in ids:
-                raise ValueError('Un agente de OpenCode usa este modelo explícitamente. Cambia su modelo antes de eliminarlo.')
+                raise ValueError(tr('Un agente de OpenCode usa este modelo explícitamente. Cambia su modelo antes de eliminarlo.'))
         if affected:
             valid = [f'{p}/{m}' for p, v in cfg.get('providers', {}).items() for m in v.get('models', {})]
             if replacement not in valid:
-                raise ValueError('El reemplazo debe estar registrado en OpenCode.')
+                raise ValueError(tr('El reemplazo debe estar registrado en OpenCode.'))
             cfg['model'] = replacement
         for k in keys:
             del models[k]
@@ -242,11 +243,11 @@ class NoOpenCode:
 def available_opencode(audit):
     config = OpenCode(audit=audit)
     if not config.path.exists():
-        return NoOpenCode('OpenCode no configurado: puedes gestionar modelos en Ollama sin él.')
+        return NoOpenCode(tr('OpenCode no configurado: puedes gestionar modelos en Ollama sin él.'))
     try:
         config.read()
     except (ValueError, OSError) as error:
-        return NoOpenCode(f'Integración de OpenCode desactivada: {error} Puedes usar Ollama; su catálogo de OpenCode no se actualizará.')
+        return NoOpenCode(tr('Integración de OpenCode desactivada: {0} Puedes usar Ollama; su catálogo de OpenCode no se actualizará.').format(error))
     return config
 
 
@@ -263,9 +264,9 @@ class Ollama:
             response = requests.request(method or ('POST' if payload is not None else 'GET'),
                 self.base + '/api/' + path, json=payload, timeout=(10, 120))
         except requests.ConnectionError as error:
-            raise RuntimeError(f'No pudimos conectar con Ollama en {self.base}. Inícialo y pulsa Actualizar. Puedes explorar el catálogo mientras tanto.') from error
+            raise RuntimeError(tr('No pudimos conectar con Ollama en {0}. Inícialo y pulsa Actualizar. Puedes explorar el catálogo mientras tanto.').format(self.base)) from error
         except requests.Timeout as error:
-            raise RuntimeError('Ollama tardó demasiado en responder. Comprueba su estado y vuelve a intentarlo.') from error
+            raise RuntimeError(tr('Ollama tardó demasiado en responder. Comprueba su estado y vuelve a intentarlo.')) from error
         if not response.ok:
             raise RuntimeError(f'Ollama: {response.status_code} — {response.text[:500]}')
         return response.json() if response.content else {}
@@ -300,17 +301,17 @@ class Ollama:
                     rate = max(0, done - initial) / max(time.monotonic() - began, .001)
                     eta = (total - done) / rate if rate else None
                     progress(done / total, f'{size_text(done)} / {size_text(total)} · '
-                        + (f'{size_text(rate)}/s · ~{int(eta)} s restantes' if eta is not None else 'Calculando velocidad…'))
+                        + (tr('{0}/s · ~{1} s restantes').format(size_text(rate), int(eta)) if eta is not None else tr('Calculando velocidad…')))
                 else:
-                    labels = {'pulling manifest': 'Consultando manifiesto…', 'verifying sha256 digest': 'Verificando integridad…',
-                        'writing manifest': 'Guardando modelo…', 'success': 'Operación completada'}
-                    progress(None, labels.get(event.get('status'), event.get('status', 'Procesando…')))
+                    labels = {'pulling manifest': tr('Consultando manifiesto…'), 'verifying sha256 digest': tr('Verificando integridad…'),
+                        'writing manifest': tr('Guardando modelo…'), 'success': tr('Operación completada')}
+                    progress(None, labels.get(event.get('status'), event.get('status', tr('Procesando…'))))
                 success = event.get('status') == 'success'
         self.response = None
         if self.cancel.is_set():
             raise Cancelled()
         if not success:
-            raise RuntimeError('Ollama cerró la conexión sin confirmar que terminó. Actualiza la lista antes de repetir.')
+            raise RuntimeError(tr('Ollama cerró la conexión sin confirmar que terminó. Actualiza la lista antes de repetir.'))
 
     def models(self):
         return self.request('tags').get('models', [])
@@ -323,34 +324,34 @@ class Ollama:
         cfg, _ = self.config.read()
         target = cfg.get('providers', {}).get('ollama', {}).get('settings', {}).get('baseURL')
         if target and target.rstrip('/') != self.base + '/v1':
-            raise ValueError('El proveedor ollama de OpenCode apunta a otro servidor.')
+            raise ValueError(tr('El proveedor ollama de OpenCode apunta a otro servidor.'))
         before = self.show(source)
         if before.get('remote_model'):
-            raise ValueError('Este es un modelo remoto de Ollama; el gestor configura modelos locales.')
+            raise ValueError(tr('Este es un modelo remoto de Ollama; el gestor configura modelos locales.'))
         max_ctx = next((v for k, v in before.get('model_info', {}).items() if k.endswith('.context_length')), None)
         if max_ctx and params['num_ctx'] > max_ctx:
-            raise ValueError(f'El modelo declara un máximo de {max_ctx} tokens; reduce el contexto.')
+            raise ValueError(tr('El modelo declara un máximo de {0} tokens; reduce el contexto.').format(max_ctx))
         all_names = [canonical(m['name']) for m in self.models()]
         if canonical(name) != canonical(source) and canonical(name) in all_names:
-            raise ValueError('Ese nombre ya existe. Elígelo desde Instalados para editarlo.')
+            raise ValueError(tr('Ese nombre ya existe. Elígelo desde Instalados para editarlo.'))
         if canonical(name) == canonical(source):
             folder = self.audit.backup(Path('/nonexistent'), 'PARAMETROS')
             path = folder / 'modelo-anterior.json'
             path.write_text(json.dumps(before, indent=2, ensure_ascii=False))
             path.chmod(0o600)
-        self.audit.record('INICIO_CONFIGURACION', f'Modelo: {name}\nOrigen: {source}\nParámetros: {params}')
+        self.audit.record('INICIO_CONFIGURACION', tr('Modelo: {0}\nOrigen: {1}\nParámetros: {2}').format(name, source, params))
         self.stream('create', {'model': name, 'from': source, 'parameters': params, 'system': system}, progress)
         result = self.show(name)
         actual = parse_parameters(result.get('parameters', ''))
         for key in ('num_ctx', 'num_predict'):
             if actual.get(key) != params[key]:
-                raise RuntimeError(f'Ollama no confirmó {key}. El modelo existe pero no fue registrado en OpenCode.')
+                raise RuntimeError(tr('Ollama no confirmó {0}. El modelo existe pero no fue registrado en OpenCode.').format(key))
         try:
             self.config.register(canonical(name), params, result.get('capabilities', []), default, self.base)
         except Exception as e:
-            self.audit.record('REGISTRO_PENDIENTE', f'Modelo {name} configurado en Ollama; fallo de OpenCode: {e}')
-            raise RuntimeError(f'El modelo quedó configurado en Ollama, pero falta registrarlo en OpenCode: {e}') from e
-        self.audit.record('CONFIGURADO', f'Modelo {name}; origen {source}; parámetros {params}; integración OpenCode: {self.config.enabled}.')
+            self.audit.record('REGISTRO_PENDIENTE', tr('Modelo {0} configurado en Ollama; fallo de OpenCode: {1}').format(name, e))
+            raise RuntimeError(tr('El modelo quedó configurado en Ollama, pero falta registrarlo en OpenCode: {0}').format(e)) from e
+        self.audit.record('CONFIGURADO', tr('Modelo {0}; origen {1}; parámetros {2}; integración OpenCode: {3}.').format(name, source, params, self.config.enabled))
 
     def delete(self, name, replacement=None):
         config, raw = self.config.deletion_plan(name, replacement)
@@ -359,32 +360,32 @@ class Ollama:
         p = backup / 'modelo.json'
         p.write_text(json.dumps(original, indent=2, ensure_ascii=False))
         p.chmod(0o600)
-        self.audit.record('INICIO_DESINSTALAR', f'Modelo: {name}\nRespaldo de metadatos: {backup}\nLos pesos no se respaldan.')
+        self.audit.record('INICIO_DESINSTALAR', tr('Modelo: {0}\nRespaldo de metadatos: {1}\nLos pesos no se respaldan.').format(name, backup))
         self.request('delete', {'model': name}, method='DELETE')
         if any(canonical(x['name']) == canonical(name) for x in self.models()):
-            raise RuntimeError('Ollama todavía lista el modelo. No se modificó OpenCode.')
+            raise RuntimeError(tr('Ollama todavía lista el modelo. No se modificó OpenCode.'))
         try:
             self.config.save(config, raw)
         except Exception as e:
-            self.audit.record('LIMPIEZA_PENDIENTE', f'Ollama eliminó {name}; falta limpiar OpenCode: {e}')
-            raise RuntimeError(f'Eliminado de Ollama, pero no de OpenCode: {e}') from e
-        self.audit.record('DESINSTALADO', f'Modelo: {name}. Eliminado mediante API de Ollama; integración OpenCode: {self.config.enabled}.')
+            self.audit.record('LIMPIEZA_PENDIENTE', tr('Ollama eliminó {0}; falta limpiar OpenCode: {1}').format(name, e))
+            raise RuntimeError(tr('Eliminado de Ollama, pero no de OpenCode: {0}').format(e)) from e
+        self.audit.record('DESINSTALADO', tr('Modelo: {0}. Eliminado mediante API de Ollama; integración OpenCode: {1}.').format(name, self.config.enabled))
 
     def test_tools(self, name):
         nonce = os.urandom(8).hex()
         tool = {'type': 'function', 'function': {'name': 'obtener_codigo',
-            'description': 'Devuelve el código de prueba actual. Solo se conoce invocando esta herramienta.',
+            'description': tr('Devuelve el código de prueba actual. Solo se conoce invocando esta herramienta.'),
             'parameters': {'type': 'object', 'properties': {}}}}
-        messages = [{'role': 'user', 'content': 'Llama a obtener_codigo y responde únicamente con el código recibido.'}]
+        messages = [{'role': 'user', 'content': tr('Llama a obtener_codigo y responde únicamente con el código recibido.')}]
         payload = {'model': name, 'messages': messages, 'tools': [tool], 'stream': False,
                    'options': {'num_ctx': 4096, 'num_predict': 512, 'temperature': 0}, 'keep_alive': '2m'}
         response = self.request('chat', payload)
         msg = response.get('message', {})
         calls = msg.get('tool_calls', [])
         if len(calls) != 1 or calls[0].get('function', {}).get('name') != 'obtener_codigo':
-            return 'No pasó: el modelo no emitió la llamada nativa esperada. No se ejecutó ningún comando.'
+            return tr('No pasó: el modelo no emitió la llamada nativa esperada. No se ejecutó ningún comando.')
         messages.extend([msg, {'role': 'tool', 'tool_name': 'obtener_codigo', 'content': nonce}])
         result = self.request('chat', {**payload, 'messages': messages})
         if nonce not in result.get('message', {}).get('content', ''):
-            return 'Parcial: llamó a la herramienta, pero no devolvió correctamente su resultado.'
-        return 'Prueba aprobada: llamada nativa y resultado correcto en Ollama. Es una prueba básica; no garantiza tareas completas en OpenCode.'
+            return tr('Parcial: llamó a la herramienta, pero no devolvió correctamente su resultado.')
+        return tr('Prueba aprobada: llamada nativa y resultado correcto en Ollama. Es una prueba básica; no garantiza tareas completas en OpenCode.')

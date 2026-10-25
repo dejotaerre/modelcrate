@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 from backend import Audit, OpenCode, NoOpenCode, available_opencode, Ollama
 from runtime import audit_root
+from i18n import tr
 
 class PortabilityTests(unittest.TestCase):
     def test_missing_opencode_does_not_create_config(self):
@@ -35,8 +36,10 @@ class PortabilityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             api=Ollama(audit=Audit(Path(tmp)),config=NoOpenCode('No disponible'))
             with patch('backend.requests.request',side_effect=requests.ConnectionError()):
-                with self.assertRaisesRegex(RuntimeError,'Puedes explorar el catálogo'):
+                with self.assertRaises(RuntimeError) as raised:
                     api.models()
+                expected = tr('No pudimos conectar con Ollama en {0}. Inícialo y pulsa Actualizar. Puedes explorar el catálogo mientras tanto.').format(api.base)
+                self.assertEqual(str(raised.exception), expected)
 
     def test_standalone_delete_skips_config(self):
         with tempfile.TemporaryDirectory() as tmp:

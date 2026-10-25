@@ -1,6 +1,6 @@
 # Contributing
 
-ModelCrate is an experimental Linux GTK4/libadwaita application. The UI is currently Spanish; documentation can be English or Spanish. New code comments should be neutral Spanish.
+ModelCrate is an experimental Linux GTK4/libadwaita application. The UI supports Spanish and English; documentation can be English or Spanish. New code comments should be neutral Spanish.
 
 Use the native Python/GTK dependencies listed in README. Run isolated tests from the repository root:
 
@@ -20,3 +20,5 @@ python3 scripts/screenshots.py --theme light
 Before changing hardware heuristics, add cases for missing data, dedicated/shared memory and context changes. Do not label simulation coverage as physical-device validation.
 
 The OpenCode adapter only supports the documented providers format. Unknown schemas should remain untouched. Keep Ollama-only operation available.
+
+Translations live in `locales/en.json`, keyed by the Spanish source messages. Wrap user-facing text with `tr()` and use numbered format placeholders for dynamic values. See [I18N.md](docs/I18N.md). Run tests under both `MODELCRATE_LANGUAGE=es` and `MODELCRATE_LANGUAGE=en`.
