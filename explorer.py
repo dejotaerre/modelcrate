@@ -46,7 +46,10 @@ def fetch_models(params=None, next_url=None):
 class Explorer(Adw.Window):
     def __init__(self, parent):
         super().__init__(title=tr('Explorar modelos'), transient_for=parent, modal=True,
-                         default_width=1040, default_height=760)
+                         default_width=max(900, int(parent.get_width() * 0.94)),
+                         default_height=max(620, int(parent.get_height() * 0.94)))
+        if parent.is_maximized() or parent.is_fullscreen():
+            self.maximize()
         self.parent_window = parent
         self.busy = False
         self.next_url = None
@@ -54,6 +57,7 @@ class Explorer(Adw.Window):
         self.connect('close-request', lambda *_: self.busy)
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header = Adw.HeaderBar()
+        header.set_decoration_layout(':maximize,close')
         header.set_title_widget(Adw.WindowTitle(title=tr('Explorar modelos'), subtitle='Hugging Face → Ollama → OpenCode'))
         root.append(header)
         controls = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -172,9 +176,13 @@ class Explorer(Adw.Window):
             return info,files,skipped,error,text
         def done(data):
             info,files,skipped,error,text=data
-            dialog=Adw.Window(title=name,transient_for=self,modal=True,default_width=820,default_height=680)
+            dialog=Adw.Window(title=name,transient_for=self,modal=True,default_width=max(900, self.get_width()),default_height=max(620, self.get_height()))
+            if self.is_maximized() or self.is_fullscreen():
+                dialog.maximize()
             box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
-            box.append(Adw.HeaderBar())
+            header=Adw.HeaderBar()
+            header.set_decoration_layout(':maximize,close')
+            box.append(header)
             card=info.get('cardData') or {}
             details=tr('{0}\nLicencia publicada: {1}\nContexto y llamadas a herramientas: sin confirmar.\nLa compatibilidad final se comprueba con Ollama después de descargar.').format(name, card.get('license', tr('Sin confirmar')))
             heading='<p>'+escape(details).replace('\n','<br>')+'</p>'
@@ -182,7 +190,24 @@ class Explorer(Adw.Window):
             listing='\n'.join(f"{f['file']} — {size_text(f['size'])}" for f in files)
             heading+='<pre>'+escape(listing or error or tr('Sin archivos compatibles.'))+'</pre>'
             if skipped: heading+='<p>'+escape(tr('{0} fragmentos omitidos: este gestor usa GGUF de un solo archivo.').format(skipped))+'</p>'
-            box.append(card_view(text, url, heading))
+            view=card_view(text, url, heading)
+            view.set_zoom_level(1.25)
+            zoom=Gtk.Box(spacing=6)
+            smaller=Gtk.Button(icon_name='zoom-out-symbolic',tooltip_text=tr('Reducir texto'))
+            larger=Gtk.Button(icon_name='zoom-in-symbolic',tooltip_text=tr('Aumentar texto'))
+            reset=Gtk.Button(label='125%',tooltip_text=tr('Restablecer tamaño del texto'))
+            def set_zoom(value):
+                value=round(max(0.75,min(2.5,value)),2)
+                view.set_zoom_level(value)
+                reset.set_label(f'{value:.0%}')
+                smaller.set_sensitive(value>0.75)
+                larger.set_sensitive(value<2.5)
+            smaller.connect('clicked',lambda *_:set_zoom(view.get_zoom_level()-0.1))
+            larger.connect('clicked',lambda *_:set_zoom(view.get_zoom_level()+0.1))
+            reset.connect('clicked',lambda *_:set_zoom(1.25))
+            for button in (smaller,reset,larger):zoom.append(button)
+            header.pack_start(zoom)
+            box.append(view)
             actions=Gtk.Box(spacing=10,margin_start=20,margin_end=20,margin_bottom=16)
             link=Gtk.LinkButton.new_with_label(url,tr('Abrir en Hugging Face'));actions.append(link)
             choose=Gtk.Button(label=tr('Elegir este modelo'),sensitive=bool(files),css_classes=['suggested-action'])

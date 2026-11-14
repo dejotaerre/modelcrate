@@ -198,5 +198,8 @@
   "Retira el lanzador; conserva fuentes, modelos y ajustes.": "Remove the launcher; keep source files, models and settings.",
   "Necesitas libadwaita 1.4 o posterior.": "You need libadwaita 1.4 or later.",
   "No se pudo completar la instalación: {0}": "Could not complete installation: {0}",
-  "Vista de demostración · Gestión local con Ollama": "Demo view · Local model management with Ollama"
+  "Vista de demostración · Gestión local con Ollama": "Demo view · Local model management with Ollama",
+  "Reducir texto": "Decrease text size",
+  "Aumentar texto": "Increase text size",
+  "Restablecer tamaño del texto": "Reset text size"
 }
