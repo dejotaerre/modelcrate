@@ -1,2 +1,5 @@
 requests>=2.31,<3
 # PyGObject, GTK4 y libadwaita se instalan mediante paquetes de la distribución.
+Markdown>=3.5,<4
+bleach>=6,<7
+# El visor integrado requiere WebKitGTK 6.0 de la distribución.

@@ -37,6 +37,9 @@ def install(uninstall=False):
         import gi
         gi.require_version('Gtk', '4.0')
         gi.require_version('Adw', '1')
+        gi.require_version('WebKit', '6.0')
+        import markdown
+        import bleach
         from gi.repository import Gtk, Adw
         if (Adw.get_major_version(), Adw.get_minor_version()) < (1, 4):
             raise RuntimeError(tr('Necesitas libadwaita 1.4 o posterior.'))

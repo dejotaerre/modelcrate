@@ -32,7 +32,7 @@ Real application renders in English with demonstration data, not a user's privat
 
 ## Requirements
 
-- Linux desktop, Python 3.10+, GTK4, libadwaita **1.4+**, PyGObject and Requests 2.31+.
+- Linux desktop, Python 3.10+, GTK4, libadwaita **1.4+**, PyGObject, Requests 2.31+, WebKitGTK 6.0, Python Markdown and Bleach.
 - A running Ollama server at `http://127.0.0.1:11434`. Install and start it separately using [Ollama's documentation](https://docs.ollama.com/). ModelCrate does not install or enable services.
 - Internet access for Hugging Face browsing and model downloads.
 - Optional: `nvidia-smi` or `vulkaninfo` for more detailed GPU detection. Missing tools do not block browsing.
@@ -40,10 +40,10 @@ Real application renders in English with demonstration data, not a user's privat
 Prefer native distribution packages. On Arch/CachyOS:
 
 ```bash
-sudo pacman -S python python-gobject python-requests gtk4 libadwaita
+sudo pacman -S python python-gobject python-requests python-markdown python-bleach gtk4 libadwaita webkitgtk-6.0
 ```
 
-On other distributions, install equivalent packages providing Python `gi`, `requests`, GTK4 and libadwaita introspection. Those environments have not yet been validated. GTK is not installed by `pip install -r requirements.txt`.
+On other distributions, install equivalent packages providing Python `gi`, `requests`, `markdown`, `bleach`, GTK4, libadwaita and WebKit 6.0 introspection. Those environments have not yet been validated. GTK is not installed by `pip install -r requirements.txt`.
 
 ## Install from the checkout
 

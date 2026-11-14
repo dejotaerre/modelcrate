@@ -1,6 +1,8 @@
 """Catálogo público de Hugging Face para el gestor local."""
 from i18n import tr
 import threading
+from html import escape
+from model_card import card_view
 from urllib.parse import urlparse, parse_qs, quote
 import requests
 import gi
@@ -166,25 +168,21 @@ class Explorer(Adw.Window):
             try: _,files,skipped=variants(url); error=None
             except Exception as e: files=[];skipped=0;error=str(e)
             readme=requests.get(url+'/raw/main/README.md',timeout=(10,30))
-            text=readme.text[:12000] if readme.ok else tr('El autor no publicó una descripción accesible.')
+            text=readme.text if readme.ok else tr('El autor no publicó una descripción accesible.')
             return info,files,skipped,error,text
         def done(data):
             info,files,skipped,error,text=data
             dialog=Adw.Window(title=name,transient_for=self,modal=True,default_width=820,default_height=680)
             box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
             box.append(Adw.HeaderBar())
-            scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
-            body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14,margin_start=20,margin_end=20,margin_bottom=20)
             card=info.get('cardData') or {}
             details=tr('{0}\nLicencia publicada: {1}\nContexto y llamadas a herramientas: sin confirmar.\nLa compatibilidad final se comprueba con Ollama después de descargar.').format(name, card.get('license', tr('Sin confirmar')))
-            body.append(Gtk.Label(label=details,xalign=0,wrap=True,selectable=True))
-            body.append(Gtk.Label(label=tr('Archivos disponibles'),xalign=0,css_classes=['heading']))
+            heading='<p>'+escape(details).replace('\n','<br>')+'</p>'
+            heading+='<h2>'+escape(tr('Archivos disponibles'))+'</h2>'
             listing='\n'.join(f"{f['file']} — {size_text(f['size'])}" for f in files)
-            body.append(Gtk.Label(label=listing or error or tr('Sin archivos compatibles.'),xalign=0,wrap=True,selectable=True))
-            if skipped:body.append(Gtk.Label(label=tr('{0} fragmentos omitidos: este gestor usa GGUF de un solo archivo.').format(skipped),wrap=True,xalign=0))
-            body.append(Gtk.Label(label=tr('Descripción del autor (Markdown)'),xalign=0,css_classes=['heading']))
-            body.append(Gtk.Label(label=text,xalign=0,wrap=True,selectable=True))
-            scroll.set_child(body);box.append(scroll)
+            heading+='<pre>'+escape(listing or error or tr('Sin archivos compatibles.'))+'</pre>'
+            if skipped: heading+='<p>'+escape(tr('{0} fragmentos omitidos: este gestor usa GGUF de un solo archivo.').format(skipped))+'</p>'
+            box.append(card_view(text, url, heading))
             actions=Gtk.Box(spacing=10,margin_start=20,margin_end=20,margin_bottom=16)
             link=Gtk.LinkButton.new_with_label(url,tr('Abrir en Hugging Face'));actions.append(link)
             choose=Gtk.Button(label=tr('Elegir este modelo'),sensitive=bool(files),css_classes=['suggested-action'])
